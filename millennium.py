@@ -13,6 +13,7 @@ import requests
 import datetime
 import json
 import re
+from collections import namedtuple
 
 api_host = None
 api_protocol = None
@@ -84,6 +85,23 @@ def Datetime2JSON(obj):
 	if isinstance(obj, datetime.datetime):
 		return obj.strftime("%Y-%m-%d %H:%M:%S")
 
+def Dict2NamedTuple(obj, record=None):
+	"""
+	Convert dictionaries to named tuples
+	"""
+	if type(obj) == dict:
+		record = "{0}Record".format(record.capitalize())
+		exec("{0} = namedtuple(record, obj.keys())".format(record))
+		for k, v in obj.iteritems():
+			if type(v) in (unicode, str):
+				exec("{0}.{1} = '{2}'".format(record,k,v.encode('utf-8')))
+			else:
+				exec("{0}.{1} = {2}".format(record,k,v))
+
+		return eval(record)
+	else:
+		return obj
+
 def Login(hostname,username,password,ssl=False,timeout=30):
 	"""
 	Do the login on the API and get the session token
@@ -146,7 +164,16 @@ def Call(method,method_type="GET",**kwargs):
 				raise MethodExecFailed(method,req.json().get("error").get("message").get("value"))
 			else:
 				res = req.json(object_hook=JSON2Datetime)
-				return res
+
+				if method_type.upper() == "GET":
+					MillenniumResult = namedtuple("MillenniumResult", ["count", "result"])
+					MillenniumResult.count = res.get("odata.count")
+					MillenniumResult.result = (Dict2NamedTuple(result, "result") for result in res.get("value"))
+				else:
+					MillenniumResult = namedtuple("MillenniumResult", res.keys())
+					MillenniumResult._make(res.values())
+				
+				return MillenniumResult
 
 def Get(method, **kwargs):
 	"""
