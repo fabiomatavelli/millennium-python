@@ -13,7 +13,6 @@ import requests
 import datetime
 import json
 import re
-import namedtuple
 
 api_host = None
 api_protocol = None
