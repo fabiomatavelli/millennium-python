@@ -90,15 +90,12 @@ def Dict2NamedTuple(obj, record=None):
 	Convert dictionaries to named tuples
 	"""
 	if type(obj) == dict:
-		record = "{0}Record".format(record.capitalize())
-		exec("{0} = namedtuple(record, obj.keys())".format(record))
+		record_ = "{0}Record".format(record.capitalize())
+		exec "{0} = namedtuple(record_, obj.keys(), rename=True)".format(record_) in globals(), locals()
 		for k, v in obj.iteritems():
-			if type(v) in (unicode, str):
-				exec("{0}.{1} = '{2}'".format(record,k,v.encode('utf-8')))
-			else:
-				exec("{0}.{1} = {2}".format(record,k,v))
+			setattr(eval(record_),k,[Dict2NamedTuple(v_, k) for v_ in v] if type(v) == list else v)
 
-		return eval(record)
+		return eval(record_)
 	else:
 		return obj
 
